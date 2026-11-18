@@ -5,3 +5,7 @@ __pycache__/
 .vscode/
 instance/
 /venv/
+.venv/
+reports/
+build/
+dist/
