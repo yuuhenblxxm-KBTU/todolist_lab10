@@ -1,0 +1,86 @@
+services:
+  app:
+    build: .
+    image: lab11-todolist:local
+
+    env_file:
+      - .env
+
+    environment:
+      DB_NAME: /app/instance/todolist.db
+      DEBUG: "false"
+
+    expose:
+      - "8000"
+
+    networks:
+      - backend
+
+    read_only: true
+
+    tmpfs:
+      - /tmp:rw,nosuid,noexec,size=64m
+
+    volumes:
+      - app_data:/app/instance
+
+    cap_drop:
+      - ALL
+
+    security_opt:
+      - no-new-privileges:true
+
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/signin', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    restart: unless-stopped
+
+  proxy:
+    image: nginx/nginx-unprivileged:stable-alpine
+
+    depends_on:
+      app:
+        condition: service_healthy
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+    networks:
+      - frontend
+      - backend
+
+    read_only: true
+
+    tmpfs:
+      - /tmp:rw,nosuid,noexec,size=64m
+
+    cap_drop:
+      - ALL
+
+    security_opt:
+      - no-new-privileges:true
+
+    pids_limit: 64
+    mem_limit: 128m
+
+    restart: unless-stopped
+
+networks:
+  frontend:
+
+  backend:
+    internal: true
+
+volumes:
+  app_data:
