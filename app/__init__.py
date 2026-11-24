@@ -4,6 +4,7 @@ import logging
 from flask_login import LoginManager, current_user
 from dotenv import load_dotenv
 from .api.note_route import views
+from .monitoring import install_monitoring
 from .api.user_route import user
 from .db import db
 from .utils.error_handlers import register_error_handlers
@@ -48,9 +49,17 @@ def create_app(config_name=None):
     def load_user(user_id):
         from .services.user_service import UserService
         return UserService.get_user_by_id(int(user_id))
-    
+
+    install_monitoring(app)
     @app.before_request
     def require_login():
+        if request.path in (
+            "/health/liveness",
+            "/health/readiness",
+            "/metrics",
+        ):
+            return
+
         public_endpoints = ['user.signin', 'user.signup', 'user.check_username', 'user.check_email']
         
         if (request.endpoint and 
